@@ -1,111 +1,75 @@
-def read_matrix_from_file(filepath, encoding='utf-8'):
-    """Чтение матрицы из файла, обработка ошибок кодировки."""
-    try:
-        with open(filepath, 'r', encoding=encoding) as file:
-            matrix = []
-            for line in file:
-                row = line.strip().split()
-                numeric_row = []
-                for num_str in row:
-                    try:
-                        numeric_row.append(float(num_str))
-                    except ValueError:
-                        print(f"Ошибка преобразования '{num_str}' в число.")
-                        return None
-                matrix.append(numeric_row)
-            return matrix
-    except FileNotFoundError:
-        print(f"Файл '{filepath}' не найден.")
-        return None
-    except UnicodeDecodeError:
-        print(f"Ошибка декодирования файла '{filepath}'. Проверьте кодировку (указана: {encoding}).")
-        return None
+import random
 
+def print_matrix(matrix, name):
+    print(f"Matrix {name}:")
+    for row in matrix:
+        print(' '.join(map(str, row)))
 
-def transpose_matrix(matrix):
-    """Транспонация матрицы."""
-    rows = len(matrix)
-    cols = len(matrix[0])
-    transposed = [[0] * rows for _ in range(cols)]
-    for i in range(rows):
-        for j in range(cols):
-            transposed[j][i] = matrix[i][j]
-    return transposed
-
-
-def count_zeros(matrix, start_row, start_col, rows, cols):
-    """Подсчет количество нулей в области."""
+def count_pos_even_region2(matrix):
+    n = len(matrix)
     count = 0
-    for i in range(start_row, start_row + rows):
-        for j in range(start_col, start_col + cols):
-            if matrix[i][j] == 0:
+    for i in range(n // 2):
+        for j in range(n // 2, n):
+            if matrix[i][j] > 0 and j % 2 == 1:
                 count += 1
     return count
 
+def count_neg_odd_region4(matrix):
+    n = len(matrix)
+    count = 0
+    for i in range(n // 2, n):
+        for j in range(n // 2):
+            if matrix[i][j] < 0 and j % 2 == 0:
+                count += 1
+    return count
 
-def swap_regions(matrix, region1_start_row, region1_start_col, region2_start_row, region2_start_col, rows, cols, symmetric):
-    """Свап области матрицы."""
-    for i in range(rows):
-        for j in range(cols):
-            row1 = region1_start_row + i
-            col1 = region1_start_col + j
-            if symmetric:
-                row2 = len(matrix) - 1 - row1
-                col2 = len(matrix[0]) - 1 - col1
-            else:
-                row2 = region2_start_row + i
-                col2 = region2_start_col + j
-            matrix[row1][col1], matrix[row2][col2] = matrix[row2][col2], matrix[row1][col1]
+def swap_regions3_4(matrix):
+    n = len(matrix)
+    for i in range(n // 2):
+        for j in range(n // 2, n):
+            matrix[i][j], matrix[n - 1 - i][n - 1 - j] = matrix[n - 1 - i][n - 1 - j], matrix[i][j]
 
-
-def matrix_operation(F, A, K):
-    """ (F + A) * AT - K * F."""
-    AT = transpose_matrix(A)
-    rows = len(F)
-    cols = len(F[0])
-    result = [[0 for _ in range(cols)] for _ in range(rows)]
-
-    for i in range(rows):
-        for j in range(cols):
-            sum_FA = F[i][j] + A[i][j]
-            dot_product = 0
-            for k in range(cols):
-                dot_product += sum_FA * AT[k][j] 
-            result[i][j] = dot_product - K * F[i][j]
-    return result
+def swap_regions2_3(matrix):
+    n = len(matrix)
+    for i in range(n // 2):
+        for j in range(n // 2):
+            matrix[i][j], matrix[i][j + n // 2] = matrix[i][j + n // 2], 0 # Несимметричный обмен: 2 -> 3, 3 -> 0
 
 
-def print_matrix(matrix):
-    """Вывод матрицы в консоль, форматируя числа как целые."""
-    for row in matrix:
-        print(' '.join(map(lambda x: str(int(x)), row))) 
+n = int(input("Введите размер матрицы (от 3 и больше, нечетное число): "))
+while n < 3 or n % 2 == 0:
+    n = int(input("Некорректный ввод. Введите нечетное число от 3 и больше: "))
 
-filepath = r"C:\Users\vadim\OneDrive\Desktop\laba\lab1\Matrixx.txt"
-A = read_matrix_from_file(filepath, encoding='utf-8')
-K = 2
+K = int(input("Введите число K: "))
 
-if A is None:
-    exit() 
-
-print("Матрица A:")
-print_matrix(A)
-
+A = [[random.randint(-10, 10) for _ in range(n)] for _ in range(n)]
 F = [row[:] for row in A]
 
-zeros_region1 = count_zeros(F, 0, 0, 3, 3)
-zeros_region3 = count_zeros(F, 3, 0, 3, 3)
+print_matrix(A, "A")
 
-if zeros_region1 > zeros_region3:
-    swap_regions(F, 0, 0, 0, 3, 3, 3, True)
+pos_even_2 = count_pos_even_region2(F)
+neg_odd_4 = count_neg_odd_region4(F)
+
+if pos_even_2 > neg_odd_4:
+    swap_regions3_4(F)
 else:
-    swap_regions(F, 0, 0, 0, 3, 3, 3, False)
+    swap_regions2_3(F)
 
-result_matrix = matrix_operation(F, A, K)
+print_matrix(F, "F")
 
-print("\nМатрица F:")
-print_matrix(F)
+AT = [[A[j][i] for j in range(n)] for i in range(n)]
+FA = [[F[i][j] + A[i][j] for j in range(n)] for i in range(n)]
+FATP = [[0 for _ in range(n)] for _ in range(n)]
+for i in range(n):
+    for j in range(n):
+        for k in range(n):
+            FATP[i][j] += FA[i][k] * AT[k][j]
 
-print("\nРезультат (F+A)*AT - K*F:")
-print_matrix(result_matrix)
+KF = [[K * F[i][j] for j in range(n)] for i in range(n)]
 
+result = [[FATP[i][j] - KF[i][j] for j in range(n)] for i in range(n)]
 
+print_matrix(AT, "AT")
+print_matrix(FATP, "(F+A)*AT")
+print_matrix(KF, "K*F")
+print_matrix(result, "(F+A)*AT - K*F")
